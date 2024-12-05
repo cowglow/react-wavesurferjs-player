@@ -33,11 +33,11 @@ jobs:
           npm install
       - name: Build
         run: |
-          npm run dist
+          npm run build
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: build
+          path: dist
       - name: Deploy 🚀
         id: deployment
         uses: actions/deploy-pages@v4
