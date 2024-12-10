@@ -14,7 +14,7 @@ export default function App() {
             <Box component="header">
                 <h1>Header</h1>
             </Box>
-            <Box component="main" sx={{flex: 1}}>
+            <Box component="main" flex={1}>
                 <AudioPlayer/>
             </Box>
             <Box component="footer">
