@@ -1,4 +1,4 @@
-import {Box, Button, Paper, styled, ToggleButton, Typography} from "@mui/material";
+import {Box, Button, CircularProgress, Paper, styled, ToggleButton, Typography} from "@mui/material";
 import WaveSurfer, {WaveSurferOptions} from "wavesurfer.js";
 import WavesurferPlayer from "@wavesurfer/react";
 import RewindIcon from '@mui/icons-material/FastRewindRounded';
@@ -8,6 +8,7 @@ import ForwardIcon from '@mui/icons-material/FastForwardRounded';
 import {useCallback, useMemo, useState} from "react";
 import {CURSOR_COLOR, PROGRESS_COLOR, WAVE_COLOR} from "./plugins/constants.ts";
 import SpectrogramIcon from '@mui/icons-material/WaterfallChartRounded';
+import createSpectrogramPluginInstance from "./plugins/create-spectrogram-plugin-instance.ts";
 import createTimelinePluginInstance from "./plugins/create-timeline-plugin-instance.ts";
 import {ZoomControl} from "./ZoomControl.tsx";
 
@@ -47,10 +48,8 @@ export default function AudioPlayer() {
     const createInstance = (ws: WaveSurfer) => {
         if (!wavesurfer) setWavesurfer(ws)
         // Plugins
-        // createSpectrogramPluginInstance({ws, onReady: setReadySpectrogram})
-        setReadySpectrogram(true)
+        createSpectrogramPluginInstance({ws, onReady: setReadySpectrogram})
         createTimelinePluginInstance({ws, onReady: setReadyTimestamp})
-
     }
 
     const playerOptions: Partial<WaveSurferOptions> = {
@@ -111,12 +110,12 @@ export default function AudioPlayer() {
                         onClick={() => setShowSpectrogram(prevState => !prevState)}
                         disabled={!readySpectrogram}
                     >
-                        <SpectrogramIcon/>
+                        {readySpectrogram ? <SpectrogramIcon/> : <CircularProgress size="1.4rem"/>}
                     </ToggleButton>
                     <ZoomControl
                         defaultValue={Number(wavesurfer) ?? DEFAULT_ZOOM_MAX}
                         value={zoom}
-                        isReady={readySpectrogram}
+                        isReady={readyTimestamp}
                         max={DEFAULT_ZOOM_MAX}
                         min={DEFAULT_ZOOM_MIN}
                         onChange={onSliderChange}

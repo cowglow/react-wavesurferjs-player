@@ -39,7 +39,9 @@ export function ZoomControl({
         <Box>
             <ToggleButton
                 value="showZoom"
-                onClick={(event) => setZoomMenuEl(event.currentTarget)}
+                onClick={(event) => {
+                    setZoomMenuEl(event.currentTarget)
+                }}
             >
                 <ZoomIcon/>
             </ToggleButton>
