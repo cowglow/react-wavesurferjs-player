@@ -1,8 +1,8 @@
 import {PropsWithChildren} from "react";
 import {Box, styled} from "@mui/material";
-import SideDrawerHeader from "./SideDrawer/Header.tsx";
-import SideDrawerSideMenu from "./SideDrawer/SideMenu.tsx";
-import SideDrawerContent from "./SideDrawer/SideDrawerContent.tsx";
+import SideDrawerHeader from "./Header.tsx";
+import SideDrawerSideMenu from "./SideMenu.tsx";
+import SideDrawerContent from "./SideDrawerContent.tsx";
 
 const StyledDrawer = styled(Box)`
   display: flex;
@@ -30,7 +30,6 @@ export default function SideDrawer(props: PropsWithChildren) {
     )
 }
 
-SideDrawer.Header = SideDrawerHeader
+SideDrawer.Header = SideDrawerHeader;
 SideDrawer.SideMenu = SideDrawerSideMenu
 SideDrawer.Content = SideDrawerContent
-
