@@ -1,5 +1,5 @@
 import {Box, Paper, styled} from "@mui/material";
-import AudioPlayer from "./feature/audio-player.tsx";
+import AudioPlayer from "./feature/AudioPlayer.tsx";
 
 const Root = styled(Paper)`
   display: flex;

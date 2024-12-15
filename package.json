@@ -30,6 +30,6 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "wavesurfer.js": "^7.8.9"
+    "wavesurfer.js": "^7.8.11"
   }
 }
