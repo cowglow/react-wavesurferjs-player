@@ -1,25 +1,14 @@
-import {Box, Button, CircularProgress, Paper, styled, ToggleButton, Typography} from "@mui/material";
-import WaveSurfer, {WaveSurferOptions} from "wavesurfer.js";
+import {Box, Paper, styled, Typography} from "@mui/material";
+import WaveSurfer from "wavesurfer.js";
 import WavesurferPlayer from "@wavesurfer/react";
-import RewindIcon from '@mui/icons-material/FastRewindRounded';
-import PauseIcon from '@mui/icons-material/PauseRounded';
-import PlayIcon from '@mui/icons-material/PlayArrowRounded';
-import ForwardIcon from '@mui/icons-material/FastForwardRounded';
-import {useEffect, useState} from "react";
-import {
-    AUDIO_FILE_PATH,
-    AUDIO_FILE_SAMPLE_RATE,
-    CURSOR_COLOR,
-    DEFAULT_ZOOM_MAX,
-    DEFAULT_ZOOM_MIN,
-    PROGRESS_COLOR,
-    WAVE_COLOR
-} from "./plugins/constants.ts";
-import SpectrogramIcon from '@mui/icons-material/WaterfallChartRounded';
+import {useEffect, useMemo, useState} from "react";
+import {DEFAULT_ZOOM_MAX, DEFAULT_ZOOM_MIN} from "./plugins/constants.ts";
 import createSpectrogramPluginInstance from "./plugins/create-spectrogram-plugin-instance.ts";
 import createTimelinePluginInstance from "./plugins/create-timeline-plugin-instance.ts";
-import {ZoomControl} from "./ZoomControl.tsx";
 import {GenericPlugin} from "wavesurfer.js/dist/base-plugin";
+import {audioPlayerOptions} from "./plugins/audio-player-options.ts";
+import {PlaybackControls, ZoomControl} from "./controls";
+import SpectrogramControl from "./controls/SpectrogramControl.tsx";
 
 const WavesurferWrapper = styled(Paper)`
     max-width: 800px;
@@ -38,75 +27,68 @@ const WavesurferFooter = styled(Box)`
 
 export default function AudioPlayer() {
     const [wavesurfer, setWavesurfer] = useState<WaveSurfer | null>(null)
-    const [wavesurferPlugins, setWavesurferPlugins] = useState<Record<string, GenericPlugin>>({})
+    const [wavesurferPlugins, setWavesurferPlugins] = useState<Record<string, GenericPlugin | null>>({
+        timeline: null,
+        spectrogram: null
+    })
 
-    // Timeline
-    const [readyTimeline, setReadyTimeline] = useState(false)
-    // Spectrogram
-    const [showSpectrogram, setShowSpectrogram] = useState(false)
+    // State reflects current state of the player
+    const [isPlaying, setIsPlaying] = useState(false)
+
+    // Ready States
     const [readySpectrogram, setReadySpectrogram] = useState(false)
+    const [readyTimeline, setReadyTimeline] = useState(false)
+    // Show States
+    const showSpectrogram = useMemo(() => Boolean(wavesurferPlugins["spectrogram"]), [readySpectrogram])
+
+
     const [zoom, setZoom] = useState(DEFAULT_ZOOM_MAX);
 
     const createInstance = (ws: WaveSurfer) => {
         console.log("Create Instance!")
         if (!wavesurfer) setWavesurfer(ws)
-        // Plugins
-        const spectrogram = createSpectrogramPluginInstance({ws, onReady: setReadySpectrogram})
-        const timeline = createTimelinePluginInstance({ws, onReady: setReadyTimeline})
-        const newWavesurferPlugins = {...wavesurferPlugins, spectrogram, timeline}
-        setWavesurferPlugins(newWavesurferPlugins)
+        setWavesurferPlugins({
+            timeline: createTimelinePluginInstance({ws, onReady: setReadyTimeline}),
+            spectrogram: null
+        })
     }
-
-    const pluginKeys = Object.keys(wavesurferPlugins)
 
     const toggleSpectrogram = async () => {
         if (!wavesurfer) return
-        if (pluginKeys.includes("spectrogram")) {
-            // remove the old own
-            setWavesurferPlugins(prevState => {
-                delete prevState["spectrogram"]
-                return prevState
-            })
-            setShowSpectrogram(false)
+        if (!wavesurferPlugins["spectrogram"]) {
+            // Create Spectrogram
+            setWavesurferPlugins(prevState => ({
+                ...prevState,
+                spectrogram: createSpectrogramPluginInstance({ws: wavesurfer, onReady: setReadySpectrogram})
+            }))
         } else {
-            // add the new one
-            const spectrogram = createSpectrogramPluginInstance({ws: wavesurfer, onReady: setReadySpectrogram})
-            setWavesurferPlugins(prevState => ({...prevState, spectrogram} as Record<string, GenericPlugin>))
-            setShowSpectrogram(true)
+            // Remove Spectrogram
+            setWavesurferPlugins(prevState => {
+                prevState.spectrogram?.destroy()
+                return {
+                    ...prevState,
+                    spectrogram: null
+                }
+            })
+            //     const spectrogram = createSpectrogramPluginInstance({ws: wavesurfer, onReady: setReadySpectrogram})
+            //     setWavesurferPlugins(prevState => ({...prevState, spectrogram}))
         }
+        console.log(wavesurferPlugins)
+        // setShowSpectrogram(prevState => !prevState)
     }
 
-    const playerOptions: Partial<WaveSurferOptions> = {
-        height: 90,
-        autoScroll: true,
-        cursorColor: CURSOR_COLOR,
-        minPxPerSec: DEFAULT_ZOOM_MAX,
-        normalize: true,
-        progressColor: PROGRESS_COLOR,
-        waveColor: WAVE_COLOR,
-        cursorWidth: 3,
-
-        barAlign: "bottom",
-        barGap: 1,
-        barHeight: 1,
-        barRadius: 3,
-        barWidth: 3,
-
-        autoCenter: true,
-        fillParent: true,
-        hideScrollbar: false,
-        mediaControls: false,
-        sampleRate: AUDIO_FILE_SAMPLE_RATE,
-        url: AUDIO_FILE_PATH,
-    }
-
-    // Register Plugin by effect
+    // Register plugin by effect
     useEffect(() => {
-        // Create the Plugins
-        Object.values(wavesurferPlugins).forEach(plugin => wavesurfer?.registerPlugin(plugin))
+        if (wavesurfer) {
+            // Remove the Active Plugins
+            [...wavesurfer.getActivePlugins()].forEach(plugin => plugin.destroy())
+            Object.keys(wavesurferPlugins).forEach(key => {
+                wavesurferPlugins[key] && wavesurfer.registerPlugin(wavesurferPlugins[key])
+            })
+        }
     }, [wavesurferPlugins]);
 
-    // State Changes should execute action on the wavesurfer instance
+    // State changes should execute actions on the wavesurfer instance
     useEffect(() => {
         wavesurfer?.zoom(Number(zoom))
     }, [zoom]);
@@ -114,46 +96,48 @@ export default function AudioPlayer() {
     return (
         <WavesurferWrapper variant="elevation">
             <WavesurferPlayer
-                {...playerOptions}
+                {...audioPlayerOptions}
                 onReady={createInstance}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
             />
             <WavesurferFooter>
                 <Box display="flex" gap={1}>
-                    <Button variant="contained" onClick={() => wavesurfer?.skip(-2)}><RewindIcon/></Button>
-                    <Button variant="contained" onClick={() => wavesurfer?.playPause()}>
-                        {!wavesurfer?.isPlaying() ? <PlayIcon/> : <PauseIcon/>}
-                    </Button>
-                    <Button variant="contained" onClick={() => wavesurfer?.skip(2)}><ForwardIcon/></Button>
-                    <Typography>{wavesurfer ? new Date(wavesurfer?.getCurrentTime() * 1000).toLocaleTimeString() : "..."}</Typography>
+                    <PlaybackControls
+                        onSkip={(step) => wavesurfer?.skip(step)}
+                        onPlayPause={() => wavesurfer?.playPause()}
+                    />
+                    <Typography
+                        variant="h3">{wavesurfer ? new Date(wavesurfer?.getCurrentTime() * 1000).toLocaleTimeString() : "..."}</Typography>
                 </Box>
                 <Box display="flex" gap={1}>
-                    {!readySpectrogram
-                        ? <CircularProgress/>
-                        : <ToggleButton
-                            value="showSpectrogram"
-                            selected={showSpectrogram}
-                            onClick={toggleSpectrogram}
-                        >
-                            <SpectrogramIcon/>
-                        </ToggleButton>
-                    }
+                    <SpectrogramControl
+                        isReady={true}
+                        isDisabled={false}
+                        value={showSpectrogram}
+                        onChange={toggleSpectrogram}
+                    />
                     <ZoomControl
-                        value={zoom}
                         isReady={readyTimeline}
+                        isDisabled={false}
+                        value={zoom}
+                        onChange={setZoom}
                         max={DEFAULT_ZOOM_MAX}
                         min={DEFAULT_ZOOM_MIN}
-                        onChange={setZoom}
                     />
                 </Box>
             </WavesurferFooter>
             <Box display="flex" padding={5} alignItems="center" overflow="auto">
                 <pre>{
                     JSON.stringify({
-                        isPlaying: wavesurfer?.isPlaying(),
-                        showSpectrogram,
+                        isPlaying,
                         readyTimeline,
                         readySpectrogram,
-                        zoom
+                        showSpectrogram,
+                        zoom,
+                        wavesurferPlugins: Object
+                            .keys(wavesurferPlugins)
+                            .filter(plugin => wavesurferPlugins[plugin] !== null)
                     }, null, 2)
                 }</pre>
             </Box>

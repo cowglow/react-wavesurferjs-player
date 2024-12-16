@@ -1,6 +1,7 @@
 import {Box, CircularProgress, Menu, Slider, styled, ToggleButton} from "@mui/material";
 import ZoomIcon from "@mui/icons-material/ZoomInRounded";
 import {useState} from "react";
+import {ControlType} from "../plugins/plugin.types.ts";
 
 const SliderWrapper = styled(Box)`
     display: flex;
@@ -14,22 +15,21 @@ const SliderWrapper = styled(Box)`
     padding-left: ${({theme}) => theme.spacing(1)};
 `;
 
-interface ZoomControlProps {
-    isReady: boolean
+type ZoomControlProps = ControlType & {
+    value: number
+    onChange: (value: number) => void
     max: number
     min: number
-    onChange: (value: number) => void
-    value: number
 }
 
-export function ZoomControl({
-                                isReady,
-                                max = 100,
-                                min = 1,
-                                onChange,
-                                value
-                            }: ZoomControlProps) {
-    const [zoomValue, setZoomValue] = useState(value)
+export default function ZoomControl({
+                                        isReady,
+                                        onChange,
+                                        value,
+                                        max = 100,
+                                        min = 1,
+                                    }: ZoomControlProps) {
+    const [selected, setSelected] = useState(false)
     const [zoomMenuEl, setZoomMenuEl] = useState<HTMLElement | null>(null)
 
     return (
@@ -38,7 +38,9 @@ export function ZoomControl({
                 ? <CircularProgress/>
                 : <ToggleButton
                     value="showZoom"
+                    selected={selected}
                     onClick={(event) => {
+                        setSelected(!selected)
                         isReady && setZoomMenuEl(event.currentTarget)
                     }}
                 >
@@ -50,7 +52,10 @@ export function ZoomControl({
                 transformOrigin={{vertical: "top", horizontal: "right"}}
                 anchorEl={zoomMenuEl}
                 open={Boolean(zoomMenuEl)}
-                onClose={() => setZoomMenuEl(null)}
+                onClose={() => {
+                    setZoomMenuEl(null)
+                    setSelected(false)
+                }}
             >
                 <SliderWrapper>
                     <Slider
@@ -58,11 +63,11 @@ export function ZoomControl({
                         orientation="vertical"
                         shiftStep={50}
                         step={10}
-                        value={zoomValue}
+                        value={value}
                         marks
                         min={min}
                         max={max}
-                        onChange={(_, value) => setZoomValue(Number(value))}
+                        onChange={(_, value) => onChange(Number(value))}
                         onChangeCommitted={(_, value) => onChange(Number(value))}
                     />
                 </SliderWrapper>

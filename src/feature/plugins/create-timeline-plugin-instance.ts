@@ -12,6 +12,5 @@ export default function createTimelinePluginInstance({ws, onReady}: WavesurferCu
         }
     })
     timelinePlugin.on("ready", () => onReady(true))
-    // ws.registerPlugin(timelinePlugin)
     return timelinePlugin
 }
