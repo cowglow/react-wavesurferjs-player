@@ -1,7 +1,7 @@
 import TimelinePlugin from "wavesurfer.js/plugins/timeline";
 import {WavesurferCustomPlugin} from "./plugin.types.ts";
 
-export default function createTimelinePluginInstance({ws, onReady}: WavesurferCustomPlugin) {
+export default async function createTimelinePluginInstance({ws, onReady}: WavesurferCustomPlugin) {
     const activePlugins = ws.getActivePlugins()
     // @ts-ignore
     if (!activePlugins.includes("Timeline")) {
