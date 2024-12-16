@@ -15,7 +15,6 @@ const SliderWrapper = styled(Box)`
 `;
 
 interface ZoomControlProps {
-    defaultValue: number
     isReady: boolean
     max: number
     min: number
@@ -24,27 +23,28 @@ interface ZoomControlProps {
 }
 
 export function ZoomControl({
-                                defaultValue,
                                 isReady,
                                 max = 100,
                                 min = 1,
                                 onChange,
                                 value
                             }: ZoomControlProps) {
+    const [zoomValue, setZoomValue] = useState(value)
     const [zoomMenuEl, setZoomMenuEl] = useState<HTMLElement | null>(null)
 
-    if (!isReady) return <CircularProgress/>
-
     return (
-        <Box>
-            <ToggleButton
-                value="showZoom"
-                onClick={(event) => {
-                    setZoomMenuEl(event.currentTarget)
-                }}
-            >
-                <ZoomIcon/>
-            </ToggleButton>
+        <Box sx={{maxWidth: 48, maxHeight: 48}}>
+            {!isReady
+                ? <CircularProgress/>
+                : <ToggleButton
+                    value="showZoom"
+                    onClick={(event) => {
+                        isReady && setZoomMenuEl(event.currentTarget)
+                    }}
+                >
+                    <ZoomIcon/>
+                </ToggleButton>
+            }
             <Menu
                 anchorOrigin={{vertical: "bottom", horizontal: "right"}}
                 transformOrigin={{vertical: "top", horizontal: "right"}}
@@ -56,14 +56,14 @@ export function ZoomControl({
                     <Slider
                         valueLabelDisplay="auto"
                         orientation="vertical"
-                        defaultValue={defaultValue}
                         shiftStep={50}
                         step={10}
-                        value={value}
+                        value={zoomValue}
                         marks
                         min={min}
                         max={max}
-                        onChange={(_, value) => onChange(Number(value))}
+                        onChange={(_, value) => setZoomValue(Number(value))}
+                        onChangeCommitted={(_, value) => onChange(Number(value))}
                     />
                 </SliderWrapper>
             </Menu>
