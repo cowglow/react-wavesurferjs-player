@@ -41,7 +41,6 @@ export default function AudioPlayer() {
     // Ready States
     const [readySpectrogram, setReadySpectrogram] = useState(false)
     const [readyTimeline, setReadyTimeline] = useState(false)
-    // Show States
 
 
     const createInstance = (ws: WaveSurfer) => {
@@ -60,17 +59,12 @@ export default function AudioPlayer() {
             spectrogram: showSpectrogram
                 ? createSpectrogramPluginInstance({
                     ws: wavesurfer,
-                    onReady: (ready) => {
-                        console.log('foo')
-                        console.log({
-                            ready,
-                            wavesurferPlugins,
-                            showSpectrogram
-                        })
-                        setReadySpectrogram(ready)
-                    }
+                    onReady: value => setTimeout(() => setReadySpectrogram(value), 1000)
                 }) : null
         }))
+        if (!showSpectrogram) {
+            setReadySpectrogram(false);
+        }
     }, [showSpectrogram]);
 
     // Register plugin by effect
@@ -83,8 +77,11 @@ export default function AudioPlayer() {
                 plugin?.options && plugin.destroy()
             )
             // Register the Active Plugins
-            wavesurferPlugins["timeline"] && wavesurfer.registerPlugin(wavesurferPlugins["timeline"])
             showSpectrogram && wavesurferPlugins["spectrogram"] && wavesurfer.registerPlugin(wavesurferPlugins["spectrogram"])
+            wavesurferPlugins["timeline"] && wavesurfer.registerPlugin(wavesurferPlugins["timeline"])
+            // Zoom action activity has an effect on the rendering of the spectrogram
+            // Using this effect to update (re-render) the spectrogram
+            wavesurfer.zoom(Number(zoom))
         }
     }, [wavesurferPlugins]);
 
