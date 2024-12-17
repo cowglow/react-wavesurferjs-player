@@ -1,7 +1,7 @@
 import {Box, Paper, styled, Typography} from "@mui/material";
 import WaveSurfer from "wavesurfer.js";
 import WavesurferPlayer from "@wavesurfer/react";
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useState} from "react";
 import {DEFAULT_ZOOM_MAX, DEFAULT_ZOOM_MIN} from "./plugins/constants.ts";
 import createSpectrogramPluginInstance from "./plugins/create-spectrogram-plugin-instance.ts";
 import createTimelinePluginInstance from "./plugins/create-timeline-plugin-instance.ts";
@@ -33,16 +33,16 @@ export default function AudioPlayer() {
     })
 
     // State reflects current state of the player
-    const [isPlaying, setIsPlaying] = useState(false)
+    const [isPlaying, setIsPlaying] = useState(false) // onPlay & onPause
+    const [showSpectrogram, setShowSpectrogram] = useState(false) // Has Spectrogram Plugin
+    const [timestamp, setTimestamp] = useState(0) // onTimeupdate
+    const [zoom, setZoom] = useState(DEFAULT_ZOOM_MAX); // onZoom
 
     // Ready States
     const [readySpectrogram, setReadySpectrogram] = useState(false)
     const [readyTimeline, setReadyTimeline] = useState(false)
     // Show States
-    const showSpectrogram = useMemo(() => Boolean(wavesurferPlugins["spectrogram"]), [readySpectrogram])
 
-
-    const [zoom, setZoom] = useState(DEFAULT_ZOOM_MAX);
 
     const createInstance = (ws: WaveSurfer) => {
         console.log("Create Instance!")
@@ -53,45 +53,40 @@ export default function AudioPlayer() {
         })
     }
 
-    const toggleSpectrogram = async () => {
+    useEffect(() => {
         if (!wavesurfer) return
-        if (!wavesurferPlugins["spectrogram"]) {
-            // Create Spectrogram
-            setWavesurferPlugins(prevState => ({
-                ...prevState,
-                spectrogram: createSpectrogramPluginInstance({ws: wavesurfer, onReady: setReadySpectrogram})
-            }))
-        } else {
-            // Remove Spectrogram
-            setWavesurferPlugins(prevState => {
-                prevState.spectrogram?.destroy()
-                return {
-                    ...prevState,
-                    spectrogram: null
-                }
-            })
-            //     const spectrogram = createSpectrogramPluginInstance({ws: wavesurfer, onReady: setReadySpectrogram})
-            //     setWavesurferPlugins(prevState => ({...prevState, spectrogram}))
-        }
-        console.log(wavesurferPlugins)
-        // setShowSpectrogram(prevState => !prevState)
-    }
+        setWavesurferPlugins(prevState => ({
+            ...prevState,
+            spectrogram: showSpectrogram
+                ? createSpectrogramPluginInstance({
+                    ws: wavesurfer,
+                    onReady: (ready) => {
+                        console.log('foo')
+                        console.log({
+                            ready,
+                            wavesurferPlugins,
+                            showSpectrogram
+                        })
+                        setReadySpectrogram(ready)
+                    }
+                }) : null
+        }))
+    }, [showSpectrogram]);
 
     // Register plugin by effect
     useEffect(() => {
         if (wavesurfer) {
             // Remove the Active Plugins
-            [...wavesurfer.getActivePlugins()].forEach(plugin => plugin.destroy())
-            Object.keys(wavesurferPlugins).forEach(key => {
-                wavesurferPlugins[key] && wavesurfer.registerPlugin(wavesurferPlugins[key])
-            })
+            const currentPlugins = wavesurfer.getActivePlugins()
+            currentPlugins.forEach(plugin =>
+                // @ts-ignore
+                plugin?.options && plugin.destroy()
+            )
+            // Register the Active Plugins
+            wavesurferPlugins["timeline"] && wavesurfer.registerPlugin(wavesurferPlugins["timeline"])
+            showSpectrogram && wavesurferPlugins["spectrogram"] && wavesurfer.registerPlugin(wavesurferPlugins["spectrogram"])
         }
     }, [wavesurferPlugins]);
-
-    // State changes should execute actions on the wavesurfer instance
-    useEffect(() => {
-        wavesurfer?.zoom(Number(zoom))
-    }, [zoom]);
 
     return (
         <WavesurferWrapper variant="elevation">
@@ -100,6 +95,8 @@ export default function AudioPlayer() {
                 onReady={createInstance}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
+                onZoom={(_, zoom) => setZoom(zoom)}
+                onTimeupdate={(_, currentTime) => setTimestamp(currentTime)}
             />
             <WavesurferFooter>
                 <Box display="flex" gap={1}>
@@ -108,20 +105,22 @@ export default function AudioPlayer() {
                         onPlayPause={() => wavesurfer?.playPause()}
                     />
                     <Typography
-                        variant="h3">{wavesurfer ? new Date(wavesurfer?.getCurrentTime() * 1000).toLocaleTimeString() : "..."}</Typography>
+                        variant="h3">{wavesurfer ? new Date(timestamp * 1000).toLocaleTimeString() : "..."}</Typography>
                 </Box>
                 <Box display="flex" gap={1}>
                     <SpectrogramControl
                         isReady={true}
                         isDisabled={false}
                         value={showSpectrogram}
-                        onChange={toggleSpectrogram}
+                        onChange={() => setShowSpectrogram(prevState => !prevState)}
                     />
                     <ZoomControl
                         isReady={readyTimeline}
                         isDisabled={false}
                         value={zoom}
-                        onChange={setZoom}
+                        onChange={(value: number) => {
+                            wavesurfer?.zoom(Number(value))
+                        }}
                         max={DEFAULT_ZOOM_MAX}
                         min={DEFAULT_ZOOM_MIN}
                     />
@@ -130,11 +129,16 @@ export default function AudioPlayer() {
             <Box display="flex" padding={5} alignItems="center" overflow="auto">
                 <pre>{
                     JSON.stringify({
-                        isPlaying,
-                        readyTimeline,
-                        readySpectrogram,
-                        showSpectrogram,
-                        zoom,
+                        state: {
+                            isPlaying,
+                            showSpectrogram,
+                            timestamp,
+                            zoom
+                        },
+                        pluginsReadiness: {
+                            readySpectrogram,
+                            readyTimeline
+                        },
                         wavesurferPlugins: Object
                             .keys(wavesurferPlugins)
                             .filter(plugin => wavesurferPlugins[plugin] !== null)
