@@ -1,7 +1,6 @@
 import {Box, Paper, styled, Typography} from "@mui/material";
-import WaveSurfer from "wavesurfer.js";
-import WavesurferPlayer from "@wavesurfer/react";
-import {useEffect, useState} from "react";
+import {useWavesurfer} from "@wavesurfer/react";
+import {useEffect, useRef, useState} from "react";
 import {DEFAULT_ZOOM_MAX, DEFAULT_ZOOM_MIN} from "./plugins/constants.ts";
 import createSpectrogramPluginInstance from "./plugins/create-spectrogram-plugin-instance.ts";
 import createTimelinePluginInstance from "./plugins/create-timeline-plugin-instance.ts";
@@ -26,16 +25,21 @@ const WavesurferFooter = styled(Box)`
 `
 
 export default function AudioPlayer() {
-    const [wavesurfer, setWavesurfer] = useState<WaveSurfer | null>(null)
+    const containerRef = useRef(null)
+    const {wavesurfer, currentTime, isPlaying, isReady} = useWavesurfer({
+        // @ts-ignore
+        container: containerRef,
+        ...audioPlayerOptions
+    })
     const [wavesurferPlugins, setWavesurferPlugins] = useState<Record<string, GenericPlugin | null>>({
         timeline: null,
         spectrogram: null
     })
 
     // State reflects current state of the player
-    const [isPlaying, setIsPlaying] = useState(false) // onPlay & onPause
+    // const [isPlaying, setIsPlaying] = useState(false) // onPlay & onPause
     const [showSpectrogram, setShowSpectrogram] = useState(false) // Has Spectrogram Plugin
-    const [timestamp, setTimestamp] = useState(0) // onTimeupdate
+    // const [timestamp, setTimestamp] = useState(0) // onTimeupdate
     const [zoom, setZoom] = useState(DEFAULT_ZOOM_MAX); // onZoom
 
     // Ready States
@@ -43,14 +47,25 @@ export default function AudioPlayer() {
     const [readyTimeline, setReadyTimeline] = useState(false)
 
 
-    const createInstance = (ws: WaveSurfer) => {
-        console.log("Create Instance!")
-        if (!wavesurfer) setWavesurfer(ws)
-        setWavesurferPlugins({
-            timeline: createTimelinePluginInstance({ws, onReady: setReadyTimeline}),
-            spectrogram: null
-        })
-    }
+    // const createInstance = (ws: WaveSurfer) => {
+    //     console.log("Create Instance!")
+    //     if (!wavesurfer) setWavesurfer(ws)
+    //     setWavesurferPlugins({
+    //         timeline: createTimelinePluginInstance({ws, onReady: setReadyTimeline}),
+    //         spectrogram: null
+    //     })
+    // }
+
+    useEffect(() => {
+        // Initial setup
+        if (!wavesurfer) return
+        if (isReady) {
+            setWavesurferPlugins({
+                timeline: createTimelinePluginInstance({ws: wavesurfer, onReady: setReadyTimeline}),
+                spectrogram: null
+            })
+        }
+    }, [isReady]);
 
     useEffect(() => {
         if (!wavesurfer) return
@@ -87,14 +102,15 @@ export default function AudioPlayer() {
 
     return (
         <WavesurferWrapper variant="elevation">
-            <WavesurferPlayer
-                {...audioPlayerOptions}
-                onReady={createInstance}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onZoom={(_, zoom) => setZoom(zoom)}
-                onTimeupdate={(_, currentTime) => setTimestamp(currentTime)}
-            />
+            {/*<WavesurferPlayer*/}
+            {/*    {...audioPlayerOptions}*/}
+            {/*    onReady={createInstance}*/}
+            {/*    onPlay={() => setIsPlaying(true)}*/}
+            {/*    onPause={() => setIsPlaying(false)}*/}
+            {/*    onZoom={(_, zoom) => setZoom(zoom)}*/}
+            {/*    onTimeupdate={(_, currentTime) => setTimestamp(currentTime)}*/}
+            {/*/>*/}
+            <Box ref={containerRef}/>
             <WavesurferFooter>
                 <Box display="flex" gap={1}>
                     <PlaybackControls
@@ -102,7 +118,7 @@ export default function AudioPlayer() {
                         onPlayPause={() => wavesurfer?.playPause()}
                     />
                     <Typography
-                        variant="h3">{wavesurfer ? new Date(timestamp * 1000).toLocaleTimeString() : "..."}</Typography>
+                        variant="h3">{wavesurfer ? new Date(currentTime * 1000).toLocaleTimeString() : "..."}</Typography>
                 </Box>
                 <Box display="flex" gap={1}>
                     <SpectrogramControl
@@ -117,6 +133,7 @@ export default function AudioPlayer() {
                         value={zoom}
                         onChange={(value: number) => {
                             wavesurfer?.zoom(Number(value))
+                            setZoom(Number(value))
                         }}
                         max={DEFAULT_ZOOM_MAX}
                         min={DEFAULT_ZOOM_MIN}
@@ -129,7 +146,7 @@ export default function AudioPlayer() {
                         state: {
                             isPlaying,
                             showSpectrogram,
-                            timestamp,
+                            currentTime,
                             zoom
                         },
                         pluginsReadiness: {
