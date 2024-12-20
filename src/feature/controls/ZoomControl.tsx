@@ -2,6 +2,7 @@ import {Box, CircularProgress, Menu, Slider, styled, ToggleButton} from "@mui/ma
 import ZoomIcon from "@mui/icons-material/ZoomInRounded";
 import {useState} from "react";
 import {ControlType} from "../plugins/plugin.types.ts";
+import {StyledControlWrapper} from "./index.styled.ts";
 
 const SliderWrapper = styled(Box)`
     display: flex;
@@ -33,7 +34,7 @@ export default function ZoomControl({
     const [zoomMenuEl, setZoomMenuEl] = useState<HTMLElement | null>(null)
 
     return (
-        <Box sx={{maxWidth: 48, maxHeight: 48}}>
+        <StyledControlWrapper>
             {!isReady
                 ? <CircularProgress/>
                 : <ToggleButton
@@ -72,6 +73,6 @@ export default function ZoomControl({
                     />
                 </SliderWrapper>
             </Menu>
-        </Box>
-    )
+        </StyledControlWrapper>
+    );
 }

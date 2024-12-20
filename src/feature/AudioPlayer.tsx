@@ -1,72 +1,58 @@
-import {Box, Paper, styled, Typography} from "@mui/material";
+import {Box} from "@mui/material";
 import {useWavesurfer} from "@wavesurfer/react";
-import {useEffect, useRef, useState} from "react";
+import {MutableRefObject, useEffect, useRef, useState} from "react";
 import {DEFAULT_ZOOM_MAX, DEFAULT_ZOOM_MIN} from "./plugins/constants.ts";
 import createSpectrogramPluginInstance from "./plugins/create-spectrogram-plugin-instance.ts";
 import createTimelinePluginInstance from "./plugins/create-timeline-plugin-instance.ts";
-import {GenericPlugin} from "wavesurfer.js/dist/base-plugin";
 import {audioPlayerOptions} from "./plugins/audio-player-options.ts";
-import {PlaybackControls, ZoomControl} from "./controls";
-import SpectrogramControl from "./controls/SpectrogramControl.tsx";
+import {AddMarkerControl, PlaybackControls, SpectrogramControl, TimestampDisplay, ZoomControl} from "./controls";
+import createMarkersRegionPluginInstance from "./plugins/create-markers-region-plugin-instance.ts";
 
-const WavesurferWrapper = styled(Paper)`
-    max-width: 800px;
-    margin: ${({theme}) => theme.spacing(1)} auto;
-    border: thin solid ${({theme}) => theme.palette.common.black};
-    display: flex;
-    flex-direction: column;
-    gap: ${({theme}) => theme.spacing(1)};
-`
-const WavesurferFooter = styled(Box)`
-    display: flex;
-    justify-content: space-between;
-    gap: ${({theme}) => theme.spacing(1)};
-    padding: ${({theme}) => theme.spacing(1)};
-`
+import {WavesurferPlugins} from "./plugins/plugin.types.ts";
+import {WaveSurferOptions} from "wavesurfer.js";
+import {WavesurferFooter, WavesurferFooterContent, WavesurferPlayer, WavesurferWrapper} from "./AudioPlayer.Styled.ts";
+
+import RegionsPlugin from "wavesurfer.js/plugins/regions";
+
+enum ACTIONS_ENUM {
+    ADD_MARKER = "ADD_MARKER",
+    // ADD_REGION = "ADD_REGION"
+}
 
 export default function AudioPlayer() {
     const containerRef = useRef(null)
-    const {wavesurfer, currentTime, isPlaying, isReady} = useWavesurfer({
+    const {wavesurfer, isReady, isPlaying, currentTime} = useWavesurfer({
         // @ts-ignore
         container: containerRef,
-        ...audioPlayerOptions
-    })
-    const [wavesurferPlugins, setWavesurferPlugins] = useState<Record<string, GenericPlugin | null>>({
-        timeline: null,
-        spectrogram: null
-    })
-
-    // State reflects current state of the player
-    // const [isPlaying, setIsPlaying] = useState(false) // onPlay & onPause
-    const [showSpectrogram, setShowSpectrogram] = useState(false) // Has Spectrogram Plugin
-    // const [timestamp, setTimestamp] = useState(0) // onTimeupdate
-    const [zoom, setZoom] = useState(DEFAULT_ZOOM_MAX); // onZoom
+        ...audioPlayerOptions,
+    } as Omit<WaveSurferOptions, "container"> & { container: MutableRefObject<null> })
+    const [action, setAction] = useState<ACTIONS_ENUM | null>(null)
+    const [wavesurferPlugins, setWavesurferPlugins] = useState<WavesurferPlugins | null>(null)
 
     // Ready States
     const [readySpectrogram, setReadySpectrogram] = useState(false)
     const [readyTimeline, setReadyTimeline] = useState(false)
 
-
-    // const createInstance = (ws: WaveSurfer) => {
-    //     console.log("Create Instance!")
-    //     if (!wavesurfer) setWavesurfer(ws)
-    //     setWavesurferPlugins({
-    //         timeline: createTimelinePluginInstance({ws, onReady: setReadyTimeline}),
-    //         spectrogram: null
-    //     })
-    // }
+    // Component State
+    const [showSpectrogram, setShowSpectrogram] = useState(false) // Has Spectrogram Plugin
+    const [zoom, setZoom] = useState(DEFAULT_ZOOM_MAX); // onZoom
 
     useEffect(() => {
         // Initial setup
         if (!wavesurfer) return
         if (isReady) {
             setWavesurferPlugins({
-                timeline: createTimelinePluginInstance({ws: wavesurfer, onReady: setReadyTimeline}),
+                timeline: createTimelinePluginInstance({
+                    ws: wavesurfer,
+                    onReady: setReadyTimeline
+                }),
+                markers: createMarkersRegionPluginInstance(),
                 spectrogram: null
             })
         }
     }, [isReady]);
 
+    // Mount and unmount the Spectrogram Plugin
     useEffect(() => {
         if (!wavesurfer) return
         setWavesurferPlugins(prevState => ({
@@ -84,43 +70,71 @@ export default function AudioPlayer() {
 
     // Register plugin by effect
     useEffect(() => {
-        if (wavesurfer) {
+        if (wavesurfer && wavesurferPlugins) {
             // Remove the Active Plugins
-            const currentPlugins = wavesurfer.getActivePlugins()
-            currentPlugins.forEach(plugin =>
-                // @ts-ignore
-                plugin?.options && plugin.destroy()
-            )
+            // @ts-ignore
+            [...wavesurfer.getActivePlugins()].forEach(plugin => plugin?.options && plugin.destroy())
+
             // Register the Active Plugins
+            wavesurferPlugins["markers"] && wavesurfer.registerPlugin(wavesurferPlugins["markers"])
             showSpectrogram && wavesurferPlugins["spectrogram"] && wavesurfer.registerPlugin(wavesurferPlugins["spectrogram"])
             wavesurferPlugins["timeline"] && wavesurfer.registerPlugin(wavesurferPlugins["timeline"])
-            // Zoom action activity has an effect on the rendering of the spectrogram
-            // Using this effect to update (re-render) the spectrogram
+            // Zoom action activity has an effect on the rendering of the spectrogram. Using this effect to update (re-render) the spectrogram
             wavesurfer.zoom(Number(zoom))
         }
+
     }, [wavesurferPlugins]);
+
+    useEffect(() => {
+        if (!wavesurfer) return
+        const handleClick = (timestamp: number, foo: number) => {
+            const markerPosition = timestamp * 10 + foo * 10
+
+            if (!action || !wavesurferPlugins) return
+            if (action === ACTIONS_ENUM.ADD_MARKER && wavesurferPlugins["markers"]) {
+                const regions = wavesurferPlugins["markers"] as RegionsPlugin
+                regions.addRegion({
+                    start: markerPosition,
+                    content: 'Marker',
+                    drag: false,
+                    resize: false,
+                    color: 'rgba(0, 0, 0, 0.1)'
+                })
+            }
+        }
+
+        wavesurfer.on('click', handleClick)
+
+        return () => {
+            wavesurfer.un('click', handleClick)
+        }
+    }, [action])
+
+    const playerCursor = Boolean(action) ? "crosshair" : "pointer"
 
     return (
         <WavesurferWrapper variant="elevation">
-            {/*<WavesurferPlayer*/}
-            {/*    {...audioPlayerOptions}*/}
-            {/*    onReady={createInstance}*/}
-            {/*    onPlay={() => setIsPlaying(true)}*/}
-            {/*    onPause={() => setIsPlaying(false)}*/}
-            {/*    onZoom={(_, zoom) => setZoom(zoom)}*/}
-            {/*    onTimeupdate={(_, currentTime) => setTimestamp(currentTime)}*/}
-            {/*/>*/}
-            <Box ref={containerRef}/>
+            <WavesurferPlayer cursor={playerCursor} ref={containerRef}/>
             <WavesurferFooter>
-                <Box display="flex" gap={1}>
+                <WavesurferFooterContent>
                     <PlaybackControls
                         onSkip={(step) => wavesurfer?.skip(step)}
                         onPlayPause={() => wavesurfer?.playPause()}
                     />
-                    <Typography
-                        variant="h3">{wavesurfer ? new Date(currentTime * 1000).toLocaleTimeString() : "..."}</Typography>
-                </Box>
-                <Box display="flex" gap={1}>
+                    <TimestampDisplay timestamp={currentTime}/>
+                </WavesurferFooterContent>
+                <WavesurferFooterContent>
+                    <AddMarkerControl
+                        isReady={isReady}
+                        isDisabled={false}
+                        value={Boolean(action)}
+                        onChange={() => {
+                            setAction(prevState => !prevState
+                                ? ACTIONS_ENUM.ADD_MARKER
+                                : null
+                            )
+                        }}
+                    />
                     <SpectrogramControl
                         isReady={true}
                         isDisabled={false}
@@ -138,11 +152,12 @@ export default function AudioPlayer() {
                         max={DEFAULT_ZOOM_MAX}
                         min={DEFAULT_ZOOM_MIN}
                     />
-                </Box>
+                </WavesurferFooterContent>
             </WavesurferFooter>
             <Box display="flex" padding={5} alignItems="center" overflow="auto">
                 <pre>{
                     JSON.stringify({
+                        action,
                         state: {
                             isPlaying,
                             showSpectrogram,
@@ -153,7 +168,7 @@ export default function AudioPlayer() {
                             readySpectrogram,
                             readyTimeline
                         },
-                        wavesurferPlugins: Object
+                        wavesurferPlugins: wavesurferPlugins && Object
                             .keys(wavesurferPlugins)
                             .filter(plugin => wavesurferPlugins[plugin] !== null)
                     }, null, 2)

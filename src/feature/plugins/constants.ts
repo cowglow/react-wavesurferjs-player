@@ -30,3 +30,8 @@ export const AUDIO_FILE_PATH = `${import.meta.env.BASE_URL}/155735-HUTCH-HD-SFX-
 export const AUDIO_FILE_SAMPLE_RATE = 44100
 export const DEFAULT_ZOOM_MIN = 1
 export const DEFAULT_ZOOM_MAX = 100
+export const DEFAULT_PLUGINS = {
+    timeline: null,
+    spectrogram: null,
+    markers: null
+}

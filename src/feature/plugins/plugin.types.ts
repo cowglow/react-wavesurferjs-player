@@ -1,4 +1,5 @@
 import WaveSurfer from "wavesurfer.js";
+import {GenericPlugin} from "wavesurfer.js/dist/base-plugin";
 
 export interface WavesurferCustomPlugin {
     ws: WaveSurfer,
@@ -6,8 +7,11 @@ export interface WavesurferCustomPlugin {
 }
 
 export interface ControlType {
-    isReady: boolean
     isDisabled: boolean
-    value: any
+    isReady: boolean
     onChange: (value: any) => void
+    value: any
 }
+
+
+export type WavesurferPlugins = Record<string, GenericPlugin | null>

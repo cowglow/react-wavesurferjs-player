@@ -1,7 +1,8 @@
-import {Box, CircularProgress, ToggleButton} from "@mui/material";
+import {CircularProgress, ToggleButton} from "@mui/material";
 import {ControlType} from "../plugins/plugin.types.ts";
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import SpectrogramIcon from "@mui/icons-material/WaterfallChartRounded";
+import {StyledControlWrapper} from "./index.styled.ts";
 
 type SpectrogramControlProps = ControlType & {
     value: boolean
@@ -12,19 +13,10 @@ export default function SpectrogramControl({
                                                onChange,
                                                value,
                                            }: SpectrogramControlProps) {
-    const [, setRenderCount] = useState(0)
     const [selected, setSelected] = useState(false)
 
-    useEffect(() => {
-        const pause = setTimeout(() => {
-            console.log('spectrogram control rendered')
-            setRenderCount(prev => prev + 1)
-        }, 1000)
-        return () => clearTimeout(pause)
-    }, [selected]);
-
     return (
-        <Box sx={{maxWidth: 48, maxHeight: 48}}>
+        <StyledControlWrapper>
             {!isReady
                 ? <CircularProgress/>
                 : <ToggleButton
@@ -38,6 +30,6 @@ export default function SpectrogramControl({
                     <SpectrogramIcon/>
                 </ToggleButton>
             }
-        </Box>
+        </StyledControlWrapper>
     )
 }
