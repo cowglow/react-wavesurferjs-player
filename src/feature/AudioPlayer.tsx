@@ -1,4 +1,4 @@
-import {Box} from "@mui/material";
+import {Paper} from "@mui/material";
 import {useWavesurfer} from "@wavesurfer/react";
 import {MutableRefObject, useEffect, useRef, useState} from "react";
 import {DEFAULT_ZOOM_MAX, DEFAULT_ZOOM_MIN} from "./plugins/constants.ts";
@@ -113,48 +113,50 @@ export default function AudioPlayer() {
     const playerCursor = Boolean(action) ? "crosshair" : "pointer"
 
     return (
-        <WavesurferWrapper variant="elevation">
-            <WavesurferPlayer cursor={playerCursor} ref={containerRef}/>
-            <WavesurferFooter>
-                <WavesurferFooterContent>
-                    <PlaybackControls
-                        onSkip={(step) => wavesurfer?.skip(step)}
-                        onPlayPause={() => wavesurfer?.playPause()}
-                    />
-                    <TimestampDisplay timestamp={currentTime}/>
-                </WavesurferFooterContent>
-                <WavesurferFooterContent>
-                    <AddMarkerControl
-                        isReady={isReady}
-                        isDisabled={false}
-                        value={Boolean(action)}
-                        onChange={() => {
-                            setAction(prevState => !prevState
-                                ? ACTIONS_ENUM.ADD_MARKER
-                                : null
-                            )
-                        }}
-                    />
-                    <SpectrogramControl
-                        isReady={true}
-                        isDisabled={false}
-                        value={showSpectrogram}
-                        onChange={() => setShowSpectrogram(prevState => !prevState)}
-                    />
-                    <ZoomControl
-                        isReady={readyTimeline}
-                        isDisabled={false}
-                        value={zoom}
-                        onChange={(value: number) => {
-                            wavesurfer?.zoom(Number(value))
-                            setZoom(Number(value))
-                        }}
-                        max={DEFAULT_ZOOM_MAX}
-                        min={DEFAULT_ZOOM_MIN}
-                    />
-                </WavesurferFooterContent>
-            </WavesurferFooter>
-            <Box display="flex" padding={5} alignItems="center" overflow="auto">
+        <>
+            <WavesurferWrapper variant="elevation">
+                <WavesurferPlayer cursor={playerCursor} ref={containerRef}/>
+                <WavesurferFooter>
+                    <WavesurferFooterContent>
+                        <PlaybackControls
+                            onSkip={(step) => wavesurfer?.skip(step)}
+                            onPlayPause={() => wavesurfer?.playPause()}
+                        />
+                        <TimestampDisplay timestamp={currentTime}/>
+                    </WavesurferFooterContent>
+                    <WavesurferFooterContent>
+                        <AddMarkerControl
+                            isReady={isReady}
+                            isDisabled={false}
+                            value={Boolean(action)}
+                            onChange={() => {
+                                setAction(prevState => !prevState
+                                    ? ACTIONS_ENUM.ADD_MARKER
+                                    : null
+                                )
+                            }}
+                        />
+                        <SpectrogramControl
+                            isReady={true}
+                            isDisabled={false}
+                            value={showSpectrogram}
+                            onChange={() => setShowSpectrogram(prevState => !prevState)}
+                        />
+                        <ZoomControl
+                            isReady={readyTimeline}
+                            isDisabled={false}
+                            value={zoom}
+                            onChange={(value: number) => {
+                                wavesurfer?.zoom(Number(value))
+                                setZoom(Number(value))
+                            }}
+                            max={DEFAULT_ZOOM_MAX}
+                            min={DEFAULT_ZOOM_MIN}
+                        />
+                    </WavesurferFooterContent>
+                </WavesurferFooter>
+            </WavesurferWrapper>
+            <Paper elevation={2} sx={{width: 400, margin: "0 auto", padding: 2}}>
                 <pre>{
                     JSON.stringify({
                         action,
@@ -173,7 +175,7 @@ export default function AudioPlayer() {
                             .filter(plugin => wavesurferPlugins[plugin] !== null)
                     }, null, 2)
                 }</pre>
-            </Box>
-        </WavesurferWrapper>
+            </Paper>
+        </>
     );
 }
