@@ -42,7 +42,7 @@ This project demonstrates how to integrate WaveSurfer.js with a React applicatio
 
 ### Usage
 
-1. Open your browser and navigate to `http://localhost:3000`.
+1. Open your browser and navigate to `http://localhost:3000/react-wavesurferjs-player`.
 2. Use the playback controls to play, pause, and skip through the audio.
 3. Adjust the zoom level using the zoom control.
 4. Toggle the spectrogram view using the spectrogram control.
@@ -56,6 +56,13 @@ This project demonstrates how to integrate WaveSurfer.js with a React applicatio
 ## Customization
 
 You can customize the audio player by modifying the components and styles in the `src` directory. The `audioPlayerOptions` object in `AudioPlayer.tsx` can be adjusted to change the WaveSurfer.js configuration.
+
+## Lessons Learned
+
+For some reason registering the Spectrogram plugin didn't render it correctly. But by setting the zoom `wavesurfer.zoom(zoom)` to the current zoom, somehow, it worked. I'm not sure why this is the case, but it works.
+Maybe it's because the action caused by the zoom change triggers the rendering of the spectrogram.
+
+It also worked with `seekTo(0)`, but it wouldn't be practical. Specially if the player cue point is located somewhere else other than the initial 0 position.
 
 ## License
 
