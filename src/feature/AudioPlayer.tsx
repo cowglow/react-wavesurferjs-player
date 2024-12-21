@@ -87,9 +87,8 @@ export default function AudioPlayer() {
 
     useEffect(() => {
         if (!wavesurfer) return
-        const handleClick = (timestamp: number, foo: number) => {
-            const markerPosition = timestamp * 10 + foo * 10
-
+        const handleClick = (relativeX: number) => {
+            const markerPosition = wavesurfer.getDuration() * relativeX
             if (!action || !wavesurferPlugins) return
             if (action === ACTIONS_ENUM.ADD_MARKER && wavesurferPlugins["markers"]) {
                 const regions = wavesurferPlugins["markers"] as RegionsPlugin
