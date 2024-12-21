@@ -92,12 +92,15 @@ export default function AudioPlayer() {
             if (!action || !wavesurferPlugins) return
             if (action === ACTIONS_ENUM.ADD_MARKER && wavesurferPlugins["markers"]) {
                 const regions = wavesurferPlugins["markers"] as RegionsPlugin
+                const content = document.createElement("div")
+                content.innerHTML = `Marker${regions.getRegions().length + 1}`
                 regions.addRegion({
                     start: markerPosition,
-                    content: 'Marker',
+                    content,
                     drag: false,
                     resize: false,
-                    color: 'rgba(0, 0, 0, 0.1)'
+                    color: 'rgba(0, 0, 0, 0.1)',
+
                 })
             }
         }
